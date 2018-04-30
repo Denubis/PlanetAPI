@@ -24,5 +24,5 @@ The task here is to extract a 200x200m tile out of satellite image centered on t
 
 # Setup
 
-* pip3 install planet
+* sudo apt update && sudo apt install gdal-bin libgdal-dev python3-gdal
 * get API key https://planet.com/account
