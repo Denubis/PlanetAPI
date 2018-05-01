@@ -11,8 +11,10 @@ import shutil
 
 ITEMLIMIT=1
 DOWNLOAD_BASE_DIR="."
-DEBUG=True
+DEBUG=False
 TARGETSRID=32635
+BANDS=['PSScene4Band']
+CLOUDCOVERLT=0.01
 
 try:
 	from osgeo import ogr, osr, gdal
@@ -99,7 +101,7 @@ def warpToFile(targetDir, identifier, filename, poly, asset, targetSRID):
 	pprint(asset['location'])
 	vsicurl_url="/vsicurl/{}".format(asset['location'])
 	output_file="{}/{}_{}_SRID{}_subarea.tif".format(targetDir,identifier,filename,targetSRID)
-	gdal.Warp(output_file, vsicurl_url, dstSRS = 'EPSG:32635', cutlineDSName = 'test.geojson', cropToCutline = True)
+	gdal.Warp(output_file, vsicurl_url, dstSRS = "EPSG:{}".format(targetSRID), cutlineDSName = 'test.geojson', cropToCutline = True)
 
 with open('ALL_MapMounds.csv', newline='') as csvfile:
 	moundsreader = csv.DictReader(csvfile)
@@ -131,11 +133,11 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 			# build a filter for the AOI
 			query = filters.and_filter(
 				filters.geom_filter(aoi),
-				filters.range_filter('cloud_cover', lt=0.01),
+				filters.range_filter('cloud_cover', lt=CLOUDCOVERLT),
 			)
 
 			# we are requesting PlanetScope 4 Band imagery
-			item_types = ['PSScene4Band']
+			item_types = BANDS
 			request = api.filters.build_search_request(query, item_types)
 			# this will cause an exception if there are any API related errors
 			results = client.quick_search(request)
@@ -186,5 +188,5 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 			RED='\033[0;31m'
 			print("\t {1} !! {0} already exists! Skipping!".format(targetDir, RED))
 
-				
-		break
+		if debug:	
+			break
