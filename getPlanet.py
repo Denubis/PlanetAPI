@@ -11,6 +11,8 @@ import shutil
 
 ITEMLIMIT=1
 DOWNLOAD_BASE_DIR="."
+DEBUG=True
+TARGETSRID=32635
 
 try:
 	from osgeo import ogr, osr, gdal
@@ -92,8 +94,12 @@ print("Planet API Key: {}".format(settings['PlanetKey']))
 
 client = api.ClientV1(api_key=settings['PlanetKey'])
 
-
-
+def warpToFile(targetDir, identifier, filename, poly, asset, targetSRID):
+	polyToJSONFile(poly)
+	pprint(asset['location'])
+	vsicurl_url="/vsicurl/{}".format(asset['location'])
+	output_file="{}/{}_{}_SRID{}_subarea.tif".format(targetDir,identifier,filename,targetSRID)
+	gdal.Warp(output_file, vsicurl_url, dstSRS = 'EPSG:32635', cutlineDSName = 'test.geojson', cropToCutline = True)
 
 with open('ALL_MapMounds.csv', newline='') as csvfile:
 	moundsreader = csv.DictReader(csvfile)
@@ -102,7 +108,7 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 		#pprint(row)
 		targetDir = "{0}/{1}".format(DOWNLOAD_BASE_DIR, row['identifier'])
 		print("Trying {0}".format(targetDir))
-		if not os.path.isdir(targetDir):
+		if DEBUG or not os.path.isdir(targetDir):
 
 
 			point = ogr.CreateGeometryFromWkt(row["geospatialcolumn"])
@@ -163,18 +169,22 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 				
 				# wait for activation
 				assets = client.get_assets(item).get()
-
+				pprint(assets)
 				callback = api.write_to_file(directory=targetDir)
 
 
-				body = client.download(assets[sceneType[0]], callback=callback)
+				#body = client.download(assets[sceneType[0]], callback=callback)
 				bodyxml = client.download(assets[sceneType[1]], callback=callback)
 
-				body.await()
+				#body.await()
 				bodyxml.await()
+				#def warpToFile(targetDir, identifier, filename, poly, asset,targetSRID):
+				warpToFile(targetDir, row['identifier'], "{}_{}".format(item['id'],sceneType[0]), poly, assets[sceneType[0]], TARGETSRID)
+
+
 		else:
 			RED='\033[0;31m'
 			print("\t {1} !! {0} already exists! Skipping!".format(targetDir, RED))
 
 				
-		# break
+		break
