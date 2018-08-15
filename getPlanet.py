@@ -7,7 +7,8 @@ import os
 from pprint import pprint
 from osgeo import ogr
 import shutil
-
+import time
+import re
 
 ITEMLIMIT=1
 DOWNLOAD_BASE_DIR="."
@@ -15,7 +16,10 @@ DEBUG=False
 TARGETSRID=32635
 BANDS=['PSScene4Band']
 CLOUDCOVERLT=0.01
-
+RED='\033[0;31m'
+NORMAL="\033[0m"
+YELLOW='\033[0;93m'
+WAIT = 30
 try:
 	from osgeo import ogr, osr, gdal
 except:
@@ -148,7 +152,13 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 
 			for item in results.items_iter(limit=ITEMLIMIT):
 				perms = item['_permissions']
-				#pprint(perms)
+				if DEBUG:
+					pprint(perms)
+				assetTypes = []
+				for p in perms:
+					res = re.search("assets.(.*):download", p)
+					if res:
+						assetTypes.append(res.group(1))
 				if ("assets.visual:download" in perms and "assets.visual_xml:download" in perms):
 					sceneType=["visual", "visual_xml"]
 				elif ("assets.analytic:download" in perms and "assets.analytic_xml:download" in perms):
@@ -164,14 +174,33 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 
 				with open('{0}/{1}.json'.format(targetDir, row['identifier']),'w') as mound:
 					json.dump(row, mound)
-				print("\tDownloading {0} with type: {1}".format(item['id'], sceneType))
+				print("\tDownloading {0} with type: {1} of possible types:\n\t{2}".format(item['id'], sceneType, assetTypes))
 				#https://github.com/planetlabs/planet-client-python/issues/101#issuecomment-296319842
 				assets = client.get_assets(item).get()
 				activation = [client.activate(assets[sceneType[0]]), client.activate(assets[sceneType[1]])]
-				
-				# wait for activation
+
 				assets = client.get_assets(item).get()
-				pprint(assets)
+				
+				# print("\t{}: {}\n\t{}: {}".format(sceneType[0], activation_status_result[sceneType[0]]["status"], sceneType[1], activation_status_result[sceneType[1]]["status"]))
+				while assets[sceneType[0]]["status"] != 'active' and assets[sceneType[1]]["status"] != 'active':
+					print('\t{}*** File is sleeping. gently waking up. Sleeping {} seconds. ****{}'.format(YELLOW, WAIT, NORMAL))
+					print("\t{}: {}\n\t{}: {}".format(sceneType[0], activation_status_result[sceneType[0]]["status"], sceneType[1],activation_status_result[sceneType[1]]["status"]))
+					time.sleep(WAIT)
+					WAIT = WAIT + 10				
+					assets = client.get_assets(item).get()
+				if WAIT > 30:
+					WAIT = WAIT -10
+
+				# wait for activation
+				#assets = client.get_assets(item).get()
+				if DEBUG:
+					print("\n{}\n".format(sceneType[0]))
+					pprint(assets[sceneType[0]])
+					print("\n{}\n".format(sceneType[1]))
+					pprint(assets[sceneType[1]])
+					pprint(activation[0])
+					pprint(activation[1])
+
 				callback = api.write_to_file(directory=targetDir)
 
 
@@ -185,8 +214,8 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 
 
 		else:
-			RED='\033[0;31m'
-			print("\t {1} !! {0} already exists! Skipping!".format(targetDir, RED))
+			
+			print("\t {1} !! {0} already exists! Skipping!{2}".format(targetDir, RED, NORMAL))
 
-		if debug:	
+		if DEBUG:	
 			break
