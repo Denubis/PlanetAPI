@@ -184,7 +184,7 @@ with open('ALL_MapMounds.csv', newline='') as csvfile:
 				# print("\t{}: {}\n\t{}: {}".format(sceneType[0], activation_status_result[sceneType[0]]["status"], sceneType[1], activation_status_result[sceneType[1]]["status"]))
 				while assets[sceneType[0]]["status"] != 'active' and assets[sceneType[1]]["status"] != 'active':
 					print('\t{}*** File is sleeping. gently waking up. Sleeping {} seconds. ****{}'.format(YELLOW, WAIT, NORMAL))
-					print("\t{}: {}\n\t{}: {}".format(sceneType[0], activation_status_result[sceneType[0]]["status"], sceneType[1],activation_status_result[sceneType[1]]["status"]))
+					print("\t{}: {}\n\t{}: {}".format(sceneType[0], assets[sceneType[0]]["status"], sceneType[1],assets[sceneType[1]]["status"]))
 					time.sleep(WAIT)
 					WAIT = WAIT + 10				
 					assets = client.get_assets(item).get()
